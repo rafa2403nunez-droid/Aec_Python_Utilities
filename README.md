@@ -19,11 +19,11 @@ Promover el uso de la programación dentro del entorno BIM, fomentando la innova
 
 * **Python / IronPython**  
 * **Autodesk Navisworks API**  
-* **Autodesk Revit API**  
+* **Autodesk Revit API**
+* **Autodesk Civil 3D API / AutoCAD API**  
 * **Autodesk Platform Services (APS)**  
-* **Bentley OpenRoads SDK**  
-* **Power BI / Power Platform**  
-* **.NET Framework / .NET 8**
+* **Bentley Microstation API**  
+* **Bentley OpenRoads API**  
 
 ## 🛠 Cómo usar
 
