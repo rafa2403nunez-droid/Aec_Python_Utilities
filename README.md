@@ -3,19 +3,12 @@
 </p>
 
 <p align="center">
+  <a href="https://github.com/RAEN-DT/PyNetLibrary/releases"><img src="https://img.shields.io/github/v/release/RAEN-DT/PyNetLibrary?label=release&color=f78166" alt="Release"/></a>
   <img src="https://img.shields.io/badge/reference%20scripts-125%2B-2b7489" alt="Scripts"/>
   <img src="https://img.shields.io/badge/API%20stubs-189%20modules-6f42c1" alt="Stubs"/>
   <img src="https://img.shields.io/badge/python-3.10%2B-blue" alt="Python"/>
   <img src="https://img.shields.io/badge/platform-Windows-lightgrey" alt="Windows"/>
   <img src="https://img.shields.io/badge/hosts-Navisworks%20%C2%B7%20Revit%20%C2%B7%20Civil%203D-orange" alt="Hosts"/>
-</p>
-
-<p align="center">
-  <a href="https://github.com/RAEN-DT">Organization</a> &middot;
-  <a href="https://github.com/RAEN-DT/PyNet">Platform</a> &middot;
-  <a href="https://github.com/RAEN-DT/PyNetBridge">Bridge</a> &middot;
-  <a href="https://github.com/RAEN-DT/PyNetVSCode">VS Code</a> &middot;
-  <a href="https://github.com/RAEN-DT/PyNet/wiki/PyNET-FAQs">FAQs</a>
 </p>
 
 #
