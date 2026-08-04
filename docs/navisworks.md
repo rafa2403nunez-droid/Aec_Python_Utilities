@@ -80,6 +80,56 @@ Without `CastUtils`, `document.Clash` may return an unusable proxy object. This 
 
 ---
 
+## Heavy models — analyze incrementally, never blind full scans
+
+**Never send a full-property, all-descendants, all-models scan as the first move against a real
+federated model.** These scripts have unknown duration (can run 10+ minutes) and the bridge/plugin
+UI does not always expose a way to cancel — a hang forces the user to kill and restart the whole
+application.
+
+Before running any script that walks `model.RootItem.Descendants` across all federated models with
+per-item property/category iteration:
+
+1. **Measure scope first, with a cheap read-only query**: how many models are loaded
+   (`len(list(doc.Models))`), and a rough element count per model (e.g. `sum(1 for _ in
+   model.RootItem.Descendants)` on one model, or `HasGeometry` counts) — before touching properties.
+2. **Go smallest-to-largest ("de menos a más")**: run the real scan on the smallest/lightest model
+   first, confirm it completes and the result shape is right, then scale up to the rest — never all
+   models at once on the first attempt.
+3. **Bound the work**: cap values collected per property key, sample a subset of items, or restrict to
+   a specific `ClassDisplayName` (e.g. only `"Tipo"` nodes) instead of every descendant — see the
+   Clash Detection skill's parameter-discovery script for the pattern.
+4. **If a `send_command` call times out, do not assume the script stopped — timeout does NOT mean the
+   process stopped executing.** The timeout is purely on the bridge side giving up waiting for a
+   response; the script keeps running inside the live Navisworks process regardless. **Do not fire any
+   further command at that PID — not even `check_plugin_status`.** A plugin ping can succeed (the
+   listener thread answers) while the actual script execution queue is still busy with the timed-out
+   script, giving a false "it's fine" reading that leads straight into sending a second command that
+   then also queues up and appears to hang. The only correct move after a timeout is to **stop and
+   tell the user**, and wait for their confirmation that the operation finished (or that they killed
+   and restarted Navisworks) before sending anything else to that session.
+5. **Add `print()` progress statements to any script with a loop over more than a few dozen items or an
+   uncertain duration — even inline scripts sent via `send_command` that will never be saved.** The
+   default of keeping prints minimal during development (see §5 in `CLAUDE.md`) assumes a short script;
+   it does not apply once a script might run long enough that the user needs to see it's alive in the
+   Navisworks Output Window. Print every N iterations or once per logical chunk (e.g. once per clash
+   test in a loop over tests), not only a final summary.
+
+**Worked example (same session, two contrasting outcomes):** grouping ~3,700 clash results by shared
+element was done right — tested on a 4-result test, then a 29-result test to measure real per-item cost
+(~0.002s/item), then scaled to the 2,200-result test with a time estimate and a generous timeout.
+Applying Approve/Reviewed status + comments to those same ~3,700 results (a similar-looking write loop)
+was done wrong immediately after — fired at full volume (~7,400 API calls across all 11 tests) with no
+prior small-scale timing test and no progress prints, using an arbitrary 180s timeout with no basis. It
+genuinely was still running past that timeout (confirmed complete only once the user watched it finish
+in the Navisworks UI) — the lesson isn't "it hung," it's "there was no way for either the AI or the user
+to tell the difference between hung and genuinely busy," which is exactly what points 4 and 5 above fix.
+
+This mirrors the general rule in `CLAUDE.md` §9 ("no heavy script without prior analysis and explicit
+permission") — applied specifically to scans and bulk writes over federated models here.
+
+---
+
 ## Write operations — no transactions needed
 
 The Navisworks API does **not** use transactions for write operations via pythonnet. Call write methods directly on the document parts (`SelectionSets.Clear()`, `AppendFile()`, etc.) — no `BeginTransaction` / `Commit` wrapper required. `Document.BeginTransaction` exists in the stubs but is not needed for typical automation and does **not** work as a Python context manager (`with` raises `__enter__`).

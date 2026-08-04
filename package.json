@@ -1,7 +1,7 @@
 {
   "name": "pynetlibrary",
   "version": "1.0.0",
-  "description": "<p align=\"center\">\r   <img src=\"https://github.com/rafa2403nunez-droid/PyNetLibrary/blob/main/Assets/PyNetLibrary.png\" width=\"300\"/>\r </p>",
+  "description": "API context and reference scripts for Autodesk Navisworks, Revit and Civil 3D on the PyNET Platform.",
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
