@@ -16,7 +16,7 @@ Scripts are sent to the plugin through the MCP bridge and executed locally insid
 
 > **QGIS is a separate environment.** Standalone **PyQGIS** scripts (`04_QGIS`) are NOT PyNET-hosted —
 > they run headless in QGIS's own Python launcher, outside the bridge and its validator
-> ([docs/qgis.md](docs/qgis.md)). GIS *inside* AutoCAD (Map 3D / Civil, `03_AutoCAD/20_GIS`) **is**
+> ([docs/qgis.md](docs/qgis.md)). GIS *inside* AutoCAD (Map 3D / Civil, `01_Scripts/03_AutoCAD/20_GIS`) **is**
 > bridge-hosted and lives under [docs/autocad-civil.md](docs/autocad-civil.md).
 
 > **Always check `list_active_instances` first** to identify the running host and PID — boilerplate
@@ -25,7 +25,9 @@ Scripts are sent to the plugin through the MCP bridge and executed locally insid
 > **Timeout rule:** always use a minimum timeout of **60 seconds** when calling `send_command`.
 
 > **MCP bridge:** `pip show pynet-mcp-bridge` (NOT `pynet-bridge`) using Python 3.10 pip at
-> `C:\Users\34655\AppData\Local\Programs\Python\Python310\Scripts\pip.exe`. Installed: **1.4.10**.
+> `C:\Users\34655\AppData\Local\Programs\Python\Python310\Scripts\pip.exe`. Installed: **1.5.4**.
+> Note there are two copies on this machine (uv at `~/.local/bin` and pip); uv wins on PATH, so
+> keep both upgraded or a client may silently run the older one.
 
 ---
 
@@ -36,21 +38,25 @@ Scripts are sent to the plugin through the MCP bridge and executed locally insid
 | A **Navisworks** script | [docs/navisworks.md](docs/navisworks.md) |
 | A **Revit** script | [docs/revit.md](docs/revit.md) |
 | A Revit **element query / measurement** | [.claude/commands/RevitApiPatterns.md](.claude/commands/RevitApiPatterns.md) |
-| An **AutoCAD / Civil 3D** script (incl. GIS *inside* AutoCAD — Map 3D, `03_AutoCAD/20_GIS`) | [docs/autocad-civil.md](docs/autocad-civil.md) |
+| An **AutoCAD / Civil 3D** script (incl. GIS *inside* AutoCAD — Map 3D, `01_Scripts/03_AutoCAD/20_GIS`) | [docs/autocad-civil.md](docs/autocad-civil.md) |
 | A **standalone QGIS / PyQGIS** script (`04_QGIS`, headless, NOT Autodesk-hosted) | [docs/qgis.md](docs/qgis.md) |
 | Any **form / dialog / custom UI** (WinForms) | [docs/winforms.md](docs/winforms.md) |
 | Reading an **Excel** file | [docs/excel-mcp.md](docs/excel-mcp.md) |
 | **Generating stubs** / VS Code IntelliSense | [docs/stubs.md](docs/stubs.md) |
 | **Deploying buttons / modules / Output Window** | [docs/ui-deployment.md](docs/ui-deployment.md) |
+| Exporting a **`.pnt`** package for the VS Code viewer | [docs/pnt-export.md](docs/pnt-export.md) |
+| Operating the VS Code viewer via **MCP** (`viewer_*` tools — select, isolate, highlight clashes, properties) | [docs/viewer-mcp.md](docs/viewer-mcp.md) |
+| The **bridge is not connected** — `mcp__pynet-bridge__*` tools missing, or `MCP error -32000: Connection closed` | [docs/bridge-troubleshooting.md](docs/bridge-troubleshooting.md) |
 | Full **security** whitelist/blocklist | [docs/security.md](docs/security.md) |
 
 The Router row above (`RevitApiPatterns`) is a **reference** to read before writing Revit queries —
 it lives in `.claude/commands/` but is consulted, not run.
 
 Everything else in `.claude/commands/` is a **workflow Skill** the *user* invokes via slash command:
-`/ClashDetection`, `/ClashCoordination`, `/ClashToleranceComparison`, `/QCModelAudit`, `/QuantityTakeoff`, `/WindSiting`, `/DevMode`. They are
+`/ClashDetection`, `/ClashCoordination`, `/ClashToleranceComparison`, `/QCModelAudit`, `/QuantityTakeoff`, `/WindSiting`, `/PowerlineFireRisk`, `/DevMode`. They are
 self-contained and auto-load when invoked — do not duplicate their content here. Suggest the matching
-one when the user describes its task (e.g. a clash run, a QC audit, a 5D takeoff, a GIS/wind-farm siting study).
+one when the user describes its task (e.g. a clash run, a QC audit, a 5D takeoff, a GIS/wind-farm siting study,
+a powerline wildfire-risk / vegetation-management study).
 
 ---
 
@@ -127,10 +133,12 @@ Quick reference (full lists in [docs/security.md](docs/security.md)):
 - **Allowed imports:** `clr`, `sys`, `json`, `re`, `time`, `datetime`, `pathlib`, `typing`,
   `threading`, `collections`, `xml`, `math`, `functools`, `pandas`, `plotly`, `matplotlib`, `dash`,
   `webbrowser`, `psutil`, `openpyxl`, `uuid`, `zipfile`, `io`, `mimetypes`, `difflib`, `csv`,
-  `ifcopenshell`, `qgis`, `processing`, `webview`, `flask`. Submodules: `http.server`,
-  `urllib.request` (network — GIS data), `urllib.parse`.
-- **Blocked imports:** `os`, `subprocess`, `shutil`, `socket`, `glob`, `inspect`, … (NOT `urllib` —
-  `urllib.request` / `.parse` are allowed at submodule level).
+  `ifcopenshell`, `numpy`, `shapely`, `qgis`, `processing`. Submodules: `http.server` (only).
+- **Blocked imports:** `os`, `subprocess`, `shutil`, `socket`, `urllib`, `glob`, `inspect`, …
+- **The sandbox is closed on purpose — no network, no local server.** `urllib` is blocked at the
+  root, and `flask` / `webview` are not whitelisted. The code that legitimately needs them (GIS
+  fetches in `04_QGIS`, the viewer and dashboard servers) runs through its own launcher, outside
+  the validator — so the bridge never has to open. Do not "fix" this by widening the whitelist.
 - **Blocked calls:** `eval`, `exec`, `compile`, `__import__`, `getattr`, `setattr`, … (blocked for MCP
   only; user-authored scripts may use them).
 
@@ -155,6 +163,11 @@ The MCP bridge (`send_command`) is the right tool for any Python task — file g
 processing, Excel, API queries. The plugin runs CPython 3.10 with pandas, openpyxl, matplotlib, etc.
 Only fall back to Bash/PowerShell for genuine OS operations (pip install, git). If a whitelisted
 library is missing and needed regularly, flag it so it can be added.
+
+> **Be scrupulous with arithmetic — never compute by hand.** Quantities, tolerances, sums, areas,
+> coordinates and any figure reported to the user must be calculated in Python (via the MCP bridge),
+> not estimated mentally. Even a "trivial" sum gets verified in code. A single wrong number erodes
+> trust in the whole analysis — double-check totals before reporting them.
 
 ---
 
