@@ -7,6 +7,26 @@ import { appIcons, tooltips } from "../../globals";
 import { TOGGLE_MEASUREMENTS_PANEL, measurementsPanelVisible } from "../panels/measurements-panel";
 import { TOGGLE_SECTION_PANEL, sectionPanelVisible } from "../panels/section-panel";
 import { TOGGLE_PROPERTIES_PANEL, propertiesPanelVisible } from "../panels/properties-panel";
+import { TOGGLE_TREE_PANEL, treePanelVisible } from "../panels/spatial-tree-panel";
+
+// Styles a clash pair (or any element set) is highlighted under. Focus / Hide / Isolate must
+// consider these too — a picked clash lives in "clash-a"/"clash-b", not the click "select" style.
+const SELECTION_STYLES = ["select", "clash-a", "clash-b"];
+
+// Merge every active highlight style into a single ModelIdMap so visibility/camera actions
+// operate on whatever is currently marked, regardless of which style painted it.
+const getActiveSelection = (highlighter: OBF.Highlighter): OBC.ModelIdMap => {
+  const merged: OBC.ModelIdMap = {};
+  for (const name of SELECTION_STYLES) {
+    const sel = (highlighter.selection as Record<string, OBC.ModelIdMap>)[name];
+    if (!sel) continue;
+    for (const [modelId, ids] of Object.entries(sel)) {
+      if (!merged[modelId]) merged[modelId] = new Set<number>();
+      for (const id of ids as Set<number>) (merged[modelId] as Set<number>).add(id);
+    }
+  }
+  return merged;
+};
 
 export interface ViewerToolbarState {
   components: OBC.Components;
@@ -107,7 +127,7 @@ export const viewerToolbarTemplate: BUI.StatefullComponent<
   if (world.camera instanceof OBC.SimpleCamera) {
     const onFocus = async ({ target }: { target: BUI.Button }) => {
       if (!(world.camera instanceof OBC.SimpleCamera)) return;
-      const selection = highlighter.selection.select;
+      const selection = getActiveSelection(highlighter);
       target.loading = true;
       await world.camera.fitToItems(
         OBC.ModelIdMapUtils.isEmpty(selection) ? undefined : selection,
@@ -119,7 +139,7 @@ export const viewerToolbarTemplate: BUI.StatefullComponent<
   }
 
   const onHide = async ({ target }: { target: BUI.Button }) => {
-    const selection = highlighter.selection.select;
+    const selection = getActiveSelection(highlighter);
     if (OBC.ModelIdMapUtils.isEmpty(selection)) return;
     target.loading = true;
     await hider.set(false, selection);
@@ -127,11 +147,16 @@ export const viewerToolbarTemplate: BUI.StatefullComponent<
   };
 
   const onIsolate = async ({ target }: { target: BUI.Button }) => {
-    const selection = highlighter.selection.select;
+    const selection = getActiveSelection(highlighter);
     if (OBC.ModelIdMapUtils.isEmpty(selection)) return;
     target.loading = true;
     await hider.isolate(selection);
     target.loading = false;
+  };
+
+  const onToggleTree = () => {
+    window.dispatchEvent(new Event(TOGGLE_TREE_PANEL));
+    requestAnimationFrame(() => update());
   };
 
   const onShowAll = async ({ target }: { target: BUI.Button }) => {
@@ -222,6 +247,14 @@ export const viewerToolbarTemplate: BUI.StatefullComponent<
           tooltip-title="Element Properties"
           tooltip-text="Open the properties panel. Select an element to see its IFC data."
           @click=${onToggleProperties}
+        ></bim-button>
+        <bim-button
+          ?active=${treePanelVisible}
+          label="Models Tree"
+          icon=${appIcons.TREE}
+          tooltip-title=${tooltips.TREE.TITLE}
+          tooltip-text=${tooltips.TREE.TEXT}
+          @click=${onToggleTree}
         ></bim-button>
       </bim-toolbar-section>
       <bim-toolbar-section label="Visibility" icon=${appIcons.SHOW}>

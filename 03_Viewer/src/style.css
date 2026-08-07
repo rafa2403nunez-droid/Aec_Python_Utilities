@@ -82,6 +82,11 @@ bim-grid[floating] > bim-toolbar {
   border: none;
   justify-self: center;
   outline: 1px solid var(--bim-ui_bg-contrast-40);
+  /* Lift off the bottom edge so the section labels aren't clipped in short
+     containers (e.g. the VS Code webview panel). */
+  margin-bottom: 0.75rem;
+  max-width: calc(100vw - 1rem);
+  overflow-x: auto;
 }
 
 bim-context-menu {

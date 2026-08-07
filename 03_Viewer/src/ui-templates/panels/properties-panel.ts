@@ -130,7 +130,7 @@ export const propertiesPanelTemplate: BUI.StatefullComponent<PropertiesPanelStat
       style="
         position: absolute;
         top: 0.5rem;
-        bottom: 6rem;
+        bottom: 7rem;
         left: 0.5rem;
         width: 18rem;
         pointer-events: all;

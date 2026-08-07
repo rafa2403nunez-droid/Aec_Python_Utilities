@@ -36,6 +36,11 @@ function makeSprite(text: string, color: string): THREE.Sprite {
 export function createViewCube(
   camera: OBC.OrthoPerspectiveCamera,
   container: HTMLElement,
+  // Radians the model geometry is rotated about the vertical axis in world space (baked-in
+  // true-north rotation). The cube's Front/Left/… must snap to the model's axes, not the
+  // world's, so every face azimuth is offset by this. Read live so it can update after the
+  // package metadata loads.
+  getNorthOffset: () => number = () => 0,
 ): void {
   const PX = 120;
 
@@ -129,8 +134,8 @@ export function createViewCube(
     const polar   = Math.acos(Math.max(-1, Math.min(1, n.y)));
     const azimuth = Math.atan2(n.x, n.z);
 
-    console.log(`[VC] face n=(${n.x.toFixed(2)},${n.y.toFixed(2)},${n.z.toFixed(2)}) → az=${(azimuth*180/Math.PI).toFixed(1)}° pol=${(polar*180/Math.PI).toFixed(1)}°`);
-    camera.controls.rotateTo(azimuth, polar, true);
+    // Face azimuth is in the model (building) frame; convert to world by adding the north offset.
+    camera.controls.rotateTo(azimuth + getNorthOffset(), polar, true);
   });
 
   cvs.addEventListener("mousemove", (e) => {
@@ -147,15 +152,23 @@ export function createViewCube(
     if (hovered >= 0) { mats[hovered].color.copy(origColors[hovered]); hovered = -1; }
   });
 
-  // ── Render loop — original working formula ────────────────────────────────────
-  const _q  = new THREE.Quaternion();
-  const _eu = new THREE.Euler();
+  // ── Render loop ───────────────────────────────────────────────────────────────
+  // The cube and compass track the camera, but expressed in the MODEL (building) frame —
+  // i.e. the world rotated about the vertical by the north offset. This makes the cube's
+  // FRONT/LEFT/… faces and the compass N align with the building, not the world axes.
+  const _q     = new THREE.Quaternion();
+  const _qAdj  = new THREE.Quaternion();
+  const _northQ = new THREE.Quaternion();
+  const _UP    = new THREE.Vector3(0, 1, 0);
+  const _eu    = new THREE.Euler();
 
   const tick = () => {
     requestAnimationFrame(tick);
     camera.three.getWorldQuaternion(_q);
-    cube.quaternion.copy(_q).invert();
-    _eu.setFromQuaternion(_q, "YXZ");
+    _northQ.setFromAxisAngle(_UP, -getNorthOffset());
+    _qAdj.copy(_northQ).multiply(_q);
+    cube.quaternion.copy(_qAdj).invert();
+    _eu.setFromQuaternion(_qAdj, "YXZ");
     compassGroup.quaternion.setFromEuler(new THREE.Euler(0, -_eu.y, 0));
     rdr.render(scene, vcCam);
   };

@@ -25,6 +25,7 @@ export const appIcons = {
   LAYOUT: "tabler:layout-filled",
   LIST: "solar:list-bold",
   PROPERTIES: "mdi:card-text-outline",
+  TREE: "mdi:file-tree",
   TOOLS: "mdi:tools",
 };
 
@@ -48,5 +49,9 @@ export const tooltips = {
   SHOW_ALL: {
     TITLE: "Show All Items",
     TEXT: "Reset the visibility of all hidden items, so they become visible again.",
+  },
+  TREE: {
+    TITLE: "Models Tree",
+    TEXT: "Open the spatial structure tree of the loaded models (Navisworks-style hierarchy).",
   },
 };

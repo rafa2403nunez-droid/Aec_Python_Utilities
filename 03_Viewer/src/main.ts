@@ -8,9 +8,10 @@ import { viewportSettingsTemplate } from "./ui-templates/buttons/viewport-settin
 import { measurementsPanelTemplate } from "./ui-templates/panels/measurements-panel";
 import { sectionPanelTemplate, TOGGLE_SECTION_MODE } from "./ui-templates/panels/section-panel";
 import { propertiesPanelTemplate, PROPERTIES_DATA_EVENT, PropertiesData } from "./ui-templates/panels/properties-panel";
+import { treePanelTemplate } from "./ui-templates/panels/spatial-tree-panel";
 import { createViewCube } from "./viewcube";
 import { getConfig } from "./config";
-import { loadModelFromUrl, loadAllModels } from "./loader";
+import { loadModelFromUrl, loadAllModels, LoaderContext } from "./loader";
 
 BUI.Manager.init();
 document.documentElement.style.setProperty("--bim-ui_main-base", "#4388B1");
@@ -61,6 +62,35 @@ world.camera = new OBC.OrthoPerspectiveCamera(components);
 world.camera.threePersp.near = 0.01;
 world.camera.threePersp.updateProjectionMatrix();
 world.camera.controls.restThreshold = 0.05;
+
+// Adapt the camera clip planes to the loaded extent. Giant models (infrastructure, whole
+// sites) get clipped away by a fixed far plane — so scale far to the model's diagonal.
+// Raising far is free (it adds no triangles/draw calls); near is scaled with the model so
+// depth-buffer precision stays reasonable, clamped so small detail up close still renders.
+function _updateCameraClipping(): void {
+  try {
+    const boxer = components.get(OBC.BoundingBoxer);
+    boxer.list.clear();
+    boxer.addFromModels();
+    const box = boxer.get();
+    boxer.list.clear();
+    if (box.isEmpty()) return;
+    const diagonal = box.getSize(new THREE.Vector3()).length();
+    if (!isFinite(diagonal) || diagonal <= 0) return;
+
+    const far = Math.max(2000, diagonal * 4);
+    const near = Math.min(1, Math.max(0.01, diagonal / 50000));
+    for (const cam of [world.camera.threePersp, world.camera.threeOrtho]) {
+      if (!cam) continue;
+      cam.near = near;
+      cam.far = far;
+      cam.updateProjectionMatrix();
+    }
+    console.log(`[PNT] camera clipping: near=${near.toFixed(3)} far=${far.toFixed(0)} (diagonal=${diagonal.toFixed(0)})`);
+  } catch (e) {
+    console.warn("[PNT] camera clipping update failed", e);
+  }
+}
 
 // No grid
 
@@ -136,6 +166,30 @@ await ifcLoader.setup({
   wasm: { absolute: true, path: "https://unpkg.com/web-ifc@0.0.71/" },
 });
 
+// Our own IfcImporter, configured identically to the one IfcLoader builds internally on
+// each .load() call (mirrors its settings.wasm.* / settings.webIfc) — built eagerly here
+// instead of waiting on IfcLoader.onIfcImporterInitialized, which only fires from inside
+// .load() and is therefore never populated before the first model load.
+const ifcImporter = new FRAGS.IfcImporter();
+ifcImporter.wasm.path = ifcLoader.settings.wasm.path;
+ifcImporter.wasm.absolute = ifcLoader.settings.wasm.absolute;
+ifcImporter.webIfcSettings = ifcLoader.settings.webIfc;
+
+fragments.core.settings.autoCoordinate = true;
+
+const loaderCtx: LoaderContext = {
+  fragments,
+  ifcImporter,
+  camera: world.camera.three,
+};
+
+const hider = components.get(OBC.Hider);
+
+// The pnt_id of whatever is currently under the "select" highlight (click in the 3D view, the
+// tree panel, or an MCP-driven viewer_select) — reported to the bridge via _reportViewerState()
+// so viewer_get_state can answer "what's currently selected".
+let _lastSelectedPntId: string | null = null;
+
 const highlighter = components.get(OBF.Highlighter);
 highlighter.setup({
   world,
@@ -154,6 +208,11 @@ highlighter.events.select.onHighlight.add(async (map) => {
   const modelId = Object.keys(map)[0];
   if (!modelId) return;
   const localIdSet = map[modelId] as Set<number>;
+  // A whole-model or type-group node (multiple instances) has no single element's properties to
+  // show — picking "the first" out of the Set is arbitrary, not meaningful. Those come from the
+  // tree panel, which dispatches its own summary (model/type name + instance count) instead; only
+  // resolve real psets here for a genuine single-element pick.
+  if (localIdSet.size !== 1) return;
   const [localId] = localIdSet;
   if (localId == null) return;
 
@@ -169,12 +228,16 @@ highlighter.events.select.onHighlight.add(async (map) => {
     const pntId = _decompressGuid(guid);
     console.log("[PNT] select pntId:", pntId);
     data = _propertiesCache.get(pntId) ?? null;
+    _lastSelectedPntId = pntId;
+    _reportViewerState();
   }
 
   window.dispatchEvent(new CustomEvent(PROPERTIES_DATA_EVENT, { detail: data }));
 });
 
 highlighter.events.select.onClear.add(() => {
+  _lastSelectedPntId = null;
+  _reportViewerState();
   window.dispatchEvent(new CustomEvent(PROPERTIES_DATA_EVENT, { detail: null }));
 });
 
@@ -189,6 +252,16 @@ highlighter.styles.set("clash-b", {
   color: new THREE.Color(0x33dd55),
   renderedFaces: FRAGS.RenderedFaces.TWO,
   opacity: 0.55,
+  transparent: true,
+});
+
+// A second neutral highlight (distinct from both clash-a/-b and the default "select" yellow)
+// for MCP's viewer_select — a plain "look at these" pointer, not a clash pair, so it must not
+// borrow the clash colours or isolate the rest of the model.
+highlighter.styles.set("select-b", {
+  color: new THREE.Color(0x4a9fd0),
+  renderedFaces: FRAGS.RenderedFaces.TWO,
+  opacity: 0.6,
   transparent: true,
 });
 
@@ -310,43 +383,44 @@ const _pendingNames: string[] = [];
 
 // Properties lookup cache: pnt_id (32-char hex) → entry from properties.json
 const _propertiesCache = new Map<string, PropertiesData>();
+// Baked-in true-north rotation (radians) written by the exporter under properties.json["__meta__"].
+// Drives the ViewCube so Front/Side snap to the building, not the world axes.
+let _viewNorthRad = 0;
 fetch("/data/properties.json")
   .then(r => r.json())
-  .then((data: Record<string, PropertiesData>) => {
-    for (const [pntId, entry] of Object.entries(data))
-      _propertiesCache.set(pntId, entry);
+  .then((data: Record<string, any>) => {
+    for (const [pntId, entry] of Object.entries(data)) {
+      if (pntId.startsWith("__")) continue; // reserved meta keys, not elements
+      _propertiesCache.set(pntId, entry as PropertiesData);
+    }
+    const meta = data["__meta__"];
+    const deg = meta?.viewRotationDeg ?? meta?.northAngleDeg;
+    if (typeof deg === "number") {
+      _viewNorthRad = (deg * Math.PI) / 180;
+      console.log(`[PNT] view rotation: ${deg}°`);
+    }
     console.log(`[PNT] properties loaded: ${_propertiesCache.size} entries`);
   })
   .catch(() => console.warn("[PNT] properties.json not available"));
 
-// Ghost mode: make all scene materials semi-transparent, skip highlight materials
-const _savedMats = new Map<any, { color: number; transparent: boolean; opacity: number }>();
-
-function _ghostAll(): void {
-  const mats = [...fragments.core.models.materials.list.values()];
-  for (const mat of mats) {
-    if ((mat as any).userData?.customId) continue;
-    const color: number = "color" in mat
-      ? (mat as any).color.getHex()
-      : (mat as any).lodColor.getHex();
-    _savedMats.set(mat, { color, transparent: mat.transparent, opacity: mat.opacity });
-    mat.transparent = true;
-    mat.opacity = 0.05;
-    (mat as any).needsUpdate = true;
-    if ("color" in mat) (mat as any).color.setColorName("white");
-    else (mat as any).lodColor.setColorName("white");
+// Resolve one or more pnt_ids (32-char hex) to a ModelIdMap (modelId → localId set) by
+// compressing each to its IFC GlobalId and looking it up across the loaded models.
+async function _resolvePntIds(pntIds: string | string[]): Promise<OBC.ModelIdMap> {
+  const sel: OBC.ModelIdMap = {};
+  const ids = Array.isArray(pntIds) ? pntIds : [pntIds];
+  for (const pntId of ids) {
+    const compressed = _compressGuid(pntId);
+    for (const [modelId, model] of fragments.list) {
+      const localIds = await model.getLocalIdsByGuids([compressed]);
+      const localId = localIds?.[0];
+      if (localId != null) {
+        if (!sel[modelId]) sel[modelId] = new Set();
+        (sel[modelId] as Set<number>).add(localId);
+        break;
+      }
+    }
   }
-}
-
-function _restoreAll(): void {
-  for (const [mat, { color, transparent, opacity }] of _savedMats) {
-    mat.transparent = transparent;
-    mat.opacity = opacity;
-    (mat as any).needsUpdate = true;
-    if ("color" in mat) (mat as any).color.setHex(color);
-    else (mat as any).lodColor.setHex(color);
-  }
-  _savedMats.clear();
+  return sel;
 }
 
 async function _highlightClash(
@@ -356,31 +430,13 @@ async function _highlightClash(
   try { highlighter.clear("clash-a"); } catch (_) {}
   try { highlighter.clear("clash-b"); } catch (_) {}
   try { highlighter.clear("select"); } catch (_) {}
-  _restoreAll();
+  try { highlighter.clear("select-b"); } catch (_) {}
+  await hider.set(true); // undo any prior isolate
 
   if (!pntIdA && !pntIdB) return;
 
-  const selA: OBC.ModelIdMap = {};
-  const selB: OBC.ModelIdMap = {};
-
-  const resolveLocalIds = async (pntIds: string | string[], sel: OBC.ModelIdMap): Promise<void> => {
-    const ids = Array.isArray(pntIds) ? pntIds : [pntIds];
-    for (const pntId of ids) {
-      const compressed = _compressGuid(pntId);
-      for (const [modelId, model] of fragments.list) {
-        const localIds = await model.getLocalIdsByGuids([compressed]);
-        const localId = localIds?.[0];
-        if (localId != null) {
-          if (!sel[modelId]) sel[modelId] = new Set();
-          (sel[modelId] as Set<number>).add(localId);
-          break;
-        }
-      }
-    }
-  };
-
-  if (pntIdA) await resolveLocalIds(pntIdA, selA);
-  if (pntIdB) await resolveLocalIds(pntIdB, selB);
+  const selA: OBC.ModelIdMap = pntIdA ? await _resolvePntIds(pntIdA) : {};
+  const selB: OBC.ModelIdMap = pntIdB ? await _resolvePntIds(pntIdB) : {};
 
   const hasA = Object.keys(selA).length > 0;
   const hasB = Object.keys(selB).length > 0;
@@ -389,8 +445,89 @@ async function _highlightClash(
   if (hasA) await highlighter.highlightByID("clash-a", selA, !hasB, false);
   if (hasB) await highlighter.highlightByID("clash-b", selB, true, false);
 
-  _ghostAll();
+  // Isolate (hide, not ghost) the clash pair instead of dimming everything else — with
+  // 5 federated disciplines loaded, thousands of overlapping semi-transparent surfaces
+  // don't depth-sort cleanly in WebGL and the "ghost" look turns into visual noise.
+  const focusMap: OBC.ModelIdMap = {};
+  for (const sel of [selA, selB]) {
+    for (const [modelId, ids] of Object.entries(sel)) {
+      if (!focusMap[modelId]) focusMap[modelId] = new Set<number>();
+      for (const id of ids as Set<number>) (focusMap[modelId] as Set<number>).add(id);
+    }
+  }
+  if (!OBC.ModelIdMapUtils.isEmpty(focusMap)) {
+    // hider.isolate() runs its hide-all and show-selected calls concurrently (Promise.all
+    // internally), which races on models shared between the two — sequence them ourselves.
+    await hider.set(false);
+    await hider.set(true, focusMap);
+    await fragments.core.update(true);
+    await world.camera.fitToItems(focusMap);
+  }
+}
+
+// Plain "look at these elements" selection for MCP's viewer_select — neutral colours
+// (select / select-b), no isolation of the rest of the model. Distinct from _highlightClash,
+// which is specifically for clash pairs (red/green + isolate).
+async function _selectPntIds(
+  pntIdsA: string | string[] | null,
+  pntIdsB: string | string[] | null,
+): Promise<void> {
+  try { highlighter.clear("clash-a"); } catch (_) {}
+  try { highlighter.clear("clash-b"); } catch (_) {}
+  try { highlighter.clear("select"); } catch (_) {}
+  try { highlighter.clear("select-b"); } catch (_) {}
+  await hider.set(true); // undo any prior isolate — this is a plain select, never isolated
+
+  if (!pntIdsA && !pntIdsB) return;
+
+  const selA: OBC.ModelIdMap = pntIdsA ? await _resolvePntIds(pntIdsA) : {};
+  const selB: OBC.ModelIdMap = pntIdsB ? await _resolvePntIds(pntIdsB) : {};
+
+  const hasA = Object.keys(selA).length > 0;
+  const hasB = Object.keys(selB).length > 0;
+  if (!hasA && !hasB) return;
+
+  if (hasA) await highlighter.highlightByID("select", selA, true, false);
+  if (hasB) await highlighter.highlightByID("select-b", selB, false, false);
+
+  const focusMap: OBC.ModelIdMap = {};
+  for (const sel of [selA, selB]) {
+    for (const [modelId, ids] of Object.entries(sel)) {
+      if (!focusMap[modelId]) focusMap[modelId] = new Set<number>();
+      for (const id of ids as Set<number>) (focusMap[modelId] as Set<number>).add(id);
+    }
+  }
+  if (!OBC.ModelIdMapUtils.isEmpty(focusMap)) await world.camera.fitToItems(focusMap);
+}
+
+// Isolate (hide everything except) the given pnt_ids. Undo with a "clear" command or the
+// toolbar's Show All / Reset Visibility.
+async function _isolatePntIds(pntIds: string | string[] | null): Promise<void> {
+  if (!pntIds || (Array.isArray(pntIds) && pntIds.length === 0)) return;
+  const sel = await _resolvePntIds(pntIds);
+  if (OBC.ModelIdMapUtils.isEmpty(sel)) {
+    console.warn("[PNT] isolate: none of the pnt_ids resolved to a loaded element");
+    return;
+  }
+  await hider.set(false);
+  await hider.set(true, sel);
   await fragments.core.update(true);
+}
+
+// Show only the named model(s) (whole discipline, e.g. "Snowdon Towers Sample HVAC"), hide the
+// rest — a model-level isolate, cheaper than resolving every element's pnt_id one by one for a
+// "just show me this discipline" request. Model names come from viewer_get_state's "models" list.
+async function _isolateModels(modelNames: string | string[] | null): Promise<void> {
+  const names = new Set(
+    Array.isArray(modelNames) ? modelNames : modelNames ? [modelNames] : [],
+  );
+  if (names.size === 0) return;
+  for (const [modelId, model] of fragments.list) {
+    await model.setVisible(undefined, names.has(modelId));
+  }
+  await fragments.core.update(true);
+  _updateCameraClipping();
+  await world.camera.fitToItems();
 }
 
 // ─── Fragments model loaded ───────────────────────────────────────────────────
@@ -402,10 +539,12 @@ fragments.list.onItemSet.add(async ({ key: modelId, value: model }) => {
   };
   world.scene.three.add(model.object);
   await fragments.core.update(true);
+  _updateCameraClipping();
   await world.camera.fitToItems();
 
   _pendingNames.shift();
   console.log(`[PNT] model ready: ${modelId}`);
+  _reportViewerState();
 });
 
 // Viewport Layouts
@@ -443,7 +582,11 @@ const [propertiesPanel] = BUI.Component.create(propertiesPanelTemplate, {});
 
 viewport.append(propertiesPanel);
 
-createViewCube(world.camera, viewport);
+const [treePanel] = BUI.Component.create(treePanelTemplate, { components });
+
+viewport.append(treePanel);
+
+createViewCube(world.camera, viewport, () => _viewNorthRad);
 
 window.addEventListener("keydown", (event) => {
   if (event.code === "KeyR" && !event.repeat) {
@@ -463,7 +606,7 @@ declare global {
 }
 
 window.loadModel = async (url: string, name?: string) => {
-  await loadModelFromUrl(ifcLoader, url, name);
+  await loadModelFromUrl(loaderCtx, url, name);
 };
 
 window.highlightElements = async (modelId: string, expressIds: number[]) => {
@@ -490,7 +633,11 @@ window.addEventListener("message", async (event) => {
     case "loadModel": {
       const stem = (payload.url as string).split("/").pop()?.replace(".ifc", "") ?? payload.name ?? "";
       if (stem) _pendingNames.push(stem);
-      await window.loadModel(payload.url, payload.name);
+      try {
+        await window.loadModel(payload.url, payload.name);
+      } catch (err) {
+        _reportLoadError(stem || payload.name || payload.url, err);
+      }
       break;
     }
     case "highlightElements":
@@ -503,7 +650,8 @@ window.addEventListener("message", async (event) => {
       try { highlighter.clear("clash-a"); } catch (_) {}
       try { highlighter.clear("clash-b"); } catch (_) {}
       try { highlighter.clear("select"); } catch (_) {}
-      _restoreAll();
+      try { highlighter.clear("select-b"); } catch (_) {}
+      await hider.set(true);
       await fragments.core.update(true);
       break;
     case "highlightClash":
@@ -515,6 +663,92 @@ window.addEventListener("message", async (event) => {
   }
 });
 
+// ─── MCP control channel (SSE) ─────────────────────────────────────────────────
+// The local pnt_server fans out commands (POSTed to /api/control by the MCP bridge)
+// to this viewer over Server-Sent Events. Maps server actions onto the same window.*
+// API used by the postMessage path above. See pnt_server.py /api/control + /api/events.
+async function _applyControlCommand(action: string, payload: any): Promise<void> {
+  switch (action) {
+    case "load_model": {
+      const stem = (payload.url as string)?.split("/").pop()?.replace(".ifc", "") ?? payload.name ?? "";
+      if (stem) _pendingNames.push(stem);
+      try {
+        await window.loadModel(payload.url, payload.name);
+      } catch (err) {
+        _reportLoadError(stem || payload.name || payload.url, err);
+      }
+      break;
+    }
+    case "select":
+      if (payload.pnt_id_a || payload.pnt_id_b) {
+        await _highlightClash(payload.pnt_id_a ?? null, payload.pnt_id_b ?? null);
+      } else if (payload.modelId) {
+        await window.highlightElements(payload.modelId, payload.expressIds ?? []);
+      }
+      break;
+    case "select_ids":
+      await _selectPntIds(payload.pnt_id_a ?? null, payload.pnt_id_b ?? null);
+      break;
+    case "fit":
+      await window.fitToAllModels();
+      break;
+    case "clear":
+      try { highlighter.clear("clash-a"); } catch (_) {}
+      try { highlighter.clear("clash-b"); } catch (_) {}
+      try { highlighter.clear("select"); } catch (_) {}
+      try { highlighter.clear("select-b"); } catch (_) {}
+      await hider.set(true); // undo any prior isolate/hide
+      await fragments.core.update(true);
+      break;
+    case "isolate":
+      await _isolatePntIds(payload.pnt_ids ?? payload.pnt_id_a ?? null);
+      break;
+    case "isolate_models":
+      await _isolateModels(payload.models ?? payload.model ?? null);
+      break;
+  }
+  _reportViewerState();
+}
+
+// Surface a load failure (missing dependency, corrupt IFC, WASM fetch failure, etc.) to the
+// VS Code host — otherwise it's just an unhandled rejection buried in the webview's devtools
+// console, invisible behind the "loading model…" notification that already closed.
+function _reportLoadError(model: string, err: unknown): void {
+  const message = err instanceof Error ? err.message : String(err);
+  console.error(`[PNT] failed to load ${model}:`, err);
+  window.parent?.postMessage(
+    { type: "viewer-event", event: "loadError", model, message },
+    "*",
+  );
+}
+
+// Report the viewer's current state so the bridge's get_state can read it back.
+function _reportViewerState(): void {
+  const models = [...fragments.list.keys()];
+  fetch("/api/state", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ type: "viewer-state", models, selected: _lastSelectedPntId }),
+  }).catch(() => { /* server may not be the pnt_server (e.g. vite dev) */ });
+}
+
+try {
+  const _sse = new EventSource("/api/events");
+  _sse.onmessage = (ev) => {
+    if (!ev.data) return;
+    try {
+      const cmd = JSON.parse(ev.data);
+      if (cmd.action) _applyControlCommand(cmd.action, cmd.payload ?? cmd);
+    } catch (e) {
+      console.warn("[PNT] bad control command", e);
+    }
+  };
+  _sse.onerror = () => { /* EventSource auto-reconnects */ };
+  console.log("[PNT] control channel connected (/api/events)");
+} catch (e) {
+  console.warn("[PNT] control channel unavailable", e);
+}
+
 // ─── Auto-load models from config ───
 
 const config = getConfig();
@@ -525,14 +759,15 @@ if (config.autoLoad && config.modelUrls.length > 0) {
     const stem = url.split("/").pop()?.replace(".ifc", "") ?? "";
     if (stem) _pendingNames.push(stem);
   }
-  loadAllModels(config, ifcLoader, (loaded, total, name) => {
+  loadAllModels(config, loaderCtx, (loaded, total, name) => {
     console.log(`[PyNET Viewer] Progress: ${loaded}/${total} — ${name}`);
   }).then(() => {
     console.log("[PyNET Viewer] All models loaded");
+    _updateCameraClipping();
     world.camera.fitToItems();
     window.parent?.postMessage(
       { type: "viewer-event", event: "modelsLoaded" },
       "*",
     );
-  });
+  }).catch((err) => _reportLoadError(config.modelUrls.join(", "), err));
 }
