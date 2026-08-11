@@ -1,3 +1,6 @@
+# SPDX-License-Identifier: MIT
+# Copyright (c) 2024-2026 RAEN Digital Tools SL - PyNET Platform
+
 # Button: import Catastro parcels (GeoJSON from the PyQGIS engine) into Civil 3D.
 # Reads the exchange GeoJSON, draws each parcel as a closed polyline on layer
 # GIS_PARCELAS_CATASTRO and attaches a CATASTRO property set (RefCatastral, AreaM2).
@@ -24,7 +27,12 @@ from Autodesk.Aec.PropertyData.DatabaseServices import (
 )
 from Autodesk.Aec.PropertyData import DataType
 
-GEOJSON_PATH = Path(r"C:\Users\34655\source\repos\GithubRNM\PyNetLibrary\01_Scripts\04_QGIS\output\parcelas_test.geojson")
+# Repo location of the standalone PyQGIS engine (01_Scripts/04_QGIS). Set it once per machine in
+# %USERPROFILE%\.pynet\paths.json (not versioned):  {"qgis_dir": "C:\\Repos\\PyNetLibrary\\01_Scripts\\04_QGIS"}
+_PATHS = Path.home() / ".pynet" / "paths.json"
+QGIS_DIR = (Path(json.loads(_PATHS.read_text(encoding="utf-8"))["qgis_dir"]) if _PATHS.exists()
+            else Path(r"C:\Repos\PyNetLibrary\01_Scripts\04_QGIS"))
+GEOJSON_PATH = QGIS_DIR / "output" / "parcelas_test.geojson"
 LAYER_NAME = "GIS_PARCELAS_CATASTRO"
 PSET_NAME = "CATASTRO"
 NOD_PSET_KEY = "AEC_PROPERTY_SET_DEFS"

@@ -1,3 +1,6 @@
+<!-- SPDX-License-Identifier: MIT -->
+<!-- Copyright (c) 2024-2026 RAEN Digital Tools SL - PyNET Platform -->
+
 # Reference: Security & execution restrictions
 
 Full whitelists/blocklists. The summary lives in `CLAUDE.md`; this is the complete reference. It mirrors the

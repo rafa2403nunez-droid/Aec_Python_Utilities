@@ -1,3 +1,6 @@
+# SPDX-License-Identifier: MIT
+# Copyright (c) 2024-2026 RAEN Digital Tools SL - PyNET Platform
+
 """
 PyNET Viewer — LEGACY standalone HTTP server (dev/troubleshooting only).
 Serves a directory of loose IFC files + Viewer + Dashboard from the Python stdlib.

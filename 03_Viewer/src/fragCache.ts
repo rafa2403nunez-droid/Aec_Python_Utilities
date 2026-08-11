@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2024-2026 RAEN Digital Tools SL - PyNET Platform
+
 // Caches the converted Fragments binary (IfcImporter.process() output) in IndexedDB, keyed
 // by source URL + byte length. Re-opening the same .pnt skips the expensive raw-IFC (STEP
 // text) parse entirely — only the first load per model pays that cost.

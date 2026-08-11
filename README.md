@@ -1,3 +1,6 @@
+<!-- SPDX-License-Identifier: MIT -->
+<!-- Copyright (c) 2024-2026 RAEN Digital Tools SL - PyNET Platform -->
+
 <p align="center">
   <img src="https://raw.githubusercontent.com/RAEN-DT/PyNetLibrary/main/Assets/PyNetLibrary.png" width="400"/>
 </p>
@@ -526,7 +529,7 @@ The script is located at `01_Scripts/01_Navisworks/04_DataAnalysis/ExportClashDa
 It opens a `.pnt`, extracts it to `~/.pynet_viewer/<name>/`, and shows the viewer + dashboard.
 
 ```powershell
-cd C:\Users\34655\source\repos\GithubRNM\PyNetLibrary\03_Viewer\server
+cd C:\Repos\PyNetLibrary\03_Viewer\server
 
 python pnt_server.py                 # opens a file picker to choose a .pnt
 python pnt_server.py project.pnt     # opens a specific package directly
@@ -540,7 +543,7 @@ what `dist_exe/` (and `server/BIM-Dashboard.spec`) hold. End users just double-c
 pick their `.pnt`, and explore the model + clashes without installing anything.
 
 ```powershell
-cd C:\Users\34655\source\repos\GithubRNM\PyNetLibrary\03_Viewer\server
+cd C:\Repos\PyNetLibrary\03_Viewer\server
 pyinstaller pnt_server.py --onefile --noconsole --add-data "../dashboard;dashboard" --add-data "../dist;dist"
 ```
 
@@ -558,7 +561,7 @@ pyinstaller pnt_server.py --onefile --noconsole --add-data "../dashboard;dashboa
 **Step 2 — Start the HTTP server**
 
 ```powershell
-cd C:\Users\34655\source\repos\GithubRNM\PyNetLibrary\03_Viewer
+cd C:\Repos\PyNetLibrary\03_Viewer
 python server\legacy_server.py --ifc-dir "C:\path\to\ifcs" --port 8095
 ```
 
@@ -578,7 +581,7 @@ http://localhost:8095/viewer/?models=model1.ifc,model2.ifc
 ### Rebuild the viewer (after changes in src/)
 
 ```powershell
-cd C:\Users\34655\source\repos\GithubRNM\PyNetLibrary\03_Viewer
+cd C:\Repos\PyNetLibrary\03_Viewer
 npm install
 npm run build
 ```
@@ -586,7 +589,7 @@ npm run build
 ### Development with hot-reload
 
 ```powershell
-cd C:\Users\34655\source\repos\GithubRNM\PyNetLibrary\03_Viewer
+cd C:\Repos\PyNetLibrary\03_Viewer
 npm run dev
 # Vite at http://localhost:5173 — requires legacy_server.py on port 8080 for IFC files
 python server\legacy_server.py --ifc-dir "C:\path\to\ifcs" --port 8080

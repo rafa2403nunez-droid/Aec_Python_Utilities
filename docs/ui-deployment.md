@@ -1,3 +1,6 @@
+<!-- SPDX-License-Identifier: MIT -->
+<!-- Copyright (c) 2024-2026 RAEN Digital Tools SL - PyNET Platform -->
+
 # Guide: UI management & button deployment (Navisworks)
 
 Read this guide when **creating modules, deploying buttons, or controlling the Output Window** via MCP.
@@ -15,7 +18,7 @@ Read this guide when **creating modules, deploying buttons, or controlling the O
 | Create module | `create_pynet_module` | new module name |
 | Deploy button | `deploy_script_button` | `module_id`, script path, name, icon |
 
-> **CRITICAL — always use ABSOLUTE paths** for `script_Path` in `deploy_script_button` and `update_script_button`. Relative paths save silently but fail at runtime with "Script File not found". Example: `C:\Users\34655\source\repos\GithubRNM\PyNetLibrary\01_Scripts\...`
+> **CRITICAL — always use ABSOLUTE paths** for `script_Path` in `deploy_script_button` and `update_script_button`. Relative paths save silently but fail at runtime with "Script File not found". Example: `C:\Repos\PyNetLibrary\01_Scripts\...`
 
 ## Editing & cleanup
 

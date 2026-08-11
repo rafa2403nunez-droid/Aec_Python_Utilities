@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2024-2026 RAEN Digital Tools SL - PyNET Platform
+
 export const CONTENT_GRID_ID = "app-content";
 export const CONTENT_GRID_GAP = "1rem";
 export const SMALL_COLUMN_WIDTH = "22rem";

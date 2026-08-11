@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2024-2026 RAEN Digital Tools SL - PyNET Platform
+
 import * as BUI from "@thatopen/ui";
 
 export const TOGGLE_PROPERTIES_PANEL = "toggle-properties-panel";

@@ -1,3 +1,6 @@
+<!-- SPDX-License-Identifier: MIT -->
+<!-- Copyright (c) 2024-2026 RAEN Digital Tools SL - PyNET Platform -->
+
 # Guide: Windows Forms (Revit, AutoCAD & Civil 3D)
 
 Read this guide **before writing any script that shows a form, dialog, or custom UI**. These rules are hard-won; ignoring them causes crashes or silent context loss.
@@ -114,6 +117,51 @@ dlg.Show()
 ## AutoCAD / Civil 3D specifics
 
 The same core rules apply. For opening and saving external DWG files from a form, see the two validated patterns (Background / UI) in [autocad-civil.md](autocad-civil.md).
+
+---
+
+## Navisworks form icon — standard path
+
+Forms shown in Navisworks should carry the PyNET bundle icon. The **standard location** is the
+bundle root (no longer `Contents/2024/Images/`):
+
+```python
+from System.Drawing import Icon
+
+NavisworksIconPath = (Path.home() / "AppData" / "Roaming" / "Autodesk"
+                      / "ApplicationPlugins" / "Raen.Navisworks.Pynet.bundle" / "manage.ico")
+
+class MyForm(Form):
+    def __init__(self):
+        super().__init__()
+        if Path(str(NavisworksIconPath)).exists():   # guard — never crash if missing
+            self.Icon = Icon(str(NavisworksIconPath))
+```
+
+Always guard with `.exists()` so a missing icon degrades gracefully instead of throwing. Note the
+bundle folder name casing is `Raen.Navisworks.Pynet.bundle`.
+
+---
+
+## AutoCAD / Civil 3D form icon — standard path
+
+Same principle as Navisworks. The Civil 3D bundle ships its own icon (`C3D.ico`) at the bundle root:
+
+```python
+from System.Drawing import Icon
+
+Civil3DIconPath = (Path.home() / "AppData" / "Roaming" / "Autodesk"
+                   / "ApplicationPlugins" / "Raen.Civil3D.Pynet.bundle" / "C3D.ico")
+
+class MyForm(Form):
+    def __init__(self):
+        super().__init__()
+        # ... Text, Size, StartPosition, etc.
+        if Path(str(Civil3DIconPath)).exists():   # guard — never crash if missing
+            self.Icon = Icon(str(Civil3DIconPath))
+```
+
+The four reference forms below all apply this icon. Bundle folder casing: `Raen.Civil3D.Pynet.bundle`.
 
 ---
 

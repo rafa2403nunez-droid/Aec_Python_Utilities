@@ -1,3 +1,6 @@
+# SPDX-License-Identifier: MIT
+# Copyright (c) 2024-2026 RAEN Digital Tools SL - PyNET Platform
+
 """
 V1 — Background edit: files are NOT opened in the AutoCAD UI.
 Pattern: standalone Database + ReadDwgFile (OpenForReadAndAllShare) + SaveAs + Dispose.
@@ -22,11 +25,15 @@ from System.Windows.Forms import (
     Form, Label, Button, FormStartPosition,
     MessageBox, MessageBoxButtons, MessageBoxIcon,
 )
-from System.Drawing import Size, Point
+from System.Drawing import Size, Point, Icon
 
+Civil3DIconPath = (Path.home() / "AppData" / "Roaming" / "Autodesk"
+                   / "ApplicationPlugins" / "Raen.Civil3D.Pynet.bundle" / "C3D.ico")
+
+# Edit these paths to point at your own drawings.
 FILES = [
-    Path(r"C:\Users\34655\OneDrive\Escritorio\PyNET_Test_1.dwg"),
-    Path(r"C:\Users\34655\OneDrive\Escritorio\PyNET_Test_2.dwg"),
+    Path(r"C:\PyNET_Samples\PyNET_Test_1.dwg"),
+    Path(r"C:\PyNET_Samples\PyNET_Test_2.dwg"),
 ]
 
 
@@ -40,6 +47,8 @@ class EditDwgForm(Form):
         self.StartPosition = FormStartPosition.CenterScreen
         self.FormBorderStyle = self.FormBorderStyle.FixedDialog
         self.MaximizeBox = False
+        if Path(str(Civil3DIconPath)).exists():
+            self.Icon = Icon(str(Civil3DIconPath))
 
         lbl = Label()
         lbl.Text = (

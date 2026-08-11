@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2024-2026 RAEN Digital Tools SL - PyNET Platform
+
 import * as FRAGS from "@thatopen/fragments";
 import * as OBC from "@thatopen/components";
 import type * as THREE from "three";

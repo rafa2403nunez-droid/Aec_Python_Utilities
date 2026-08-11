@@ -1,3 +1,6 @@
+<!-- SPDX-License-Identifier: MIT -->
+<!-- Copyright (c) 2024-2026 RAEN Digital Tools SL - PyNET Platform -->
+
 # Guide: Reading Excel files via MCP
 
 Read this guide **before reading any `.xlsx` file**. Always run through MCP (`send_command`) — **never** Bash/PowerShell.

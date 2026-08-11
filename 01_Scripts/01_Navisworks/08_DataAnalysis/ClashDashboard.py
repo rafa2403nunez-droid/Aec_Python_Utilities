@@ -1,3 +1,6 @@
+# SPDX-License-Identifier: MIT
+# Copyright (c) 2024-2026 RAEN Digital Tools SL - PyNET Platform
+
 import clr
 import sys
 import json
@@ -8,7 +11,8 @@ import webbrowser
 clr.AddReference("Autodesk.Navisworks.Api")
 from Autodesk.Navisworks.Api import Application
 clr.AddReference("Autodesk.Navisworks.Clash")
-from Autodesk.Navisworks.Api.Clash import DocumentClashclr.AddReference("System.Windows.Forms")
+from Autodesk.Navisworks.Api.Clash import DocumentClash
+clr.AddReference("System.Windows.Forms")
 from System.Windows.Forms import MessageBox, MessageBoxButtons, MessageBoxIcon
 
 bundlePath = (Path.home() / "AppData" / "Roaming" / "Autodesk" / "ApplicationPlugins"

@@ -1,3 +1,6 @@
+<!-- SPDX-License-Identifier: MIT -->
+<!-- Copyright (c) 2024-2026 RAEN Digital Tools SL - PyNET Platform -->
+
 # Guide: the PyNET VS Code viewer's MCP tools (`viewer_*`)
 
 Reference for the `mcp__pynet-bridge__viewer_*` tools that drive the embedded viewer (ThatOpen /

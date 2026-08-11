@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2024-2026 RAEN Digital Tools SL - PyNET Platform
+
 import * as OBC from "@thatopen/components";
 import * as BUI from "@thatopen/ui";
 import { CONTENT_GRID_GAP, CONTENT_GRID_ID } from "../../globals";

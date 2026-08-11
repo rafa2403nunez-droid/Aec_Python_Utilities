@@ -1,3 +1,6 @@
+<!-- SPDX-License-Identifier: MIT -->
+<!-- Copyright (c) 2024-2026 RAEN Digital Tools SL - PyNET Platform -->
+
 # Guide: AutoCAD & Civil 3D scripts
 
 Read this guide **before writing any AutoCAD or Civil 3D script**. For forms/dialogs read [winforms.md](winforms.md).

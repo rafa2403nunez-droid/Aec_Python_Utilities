@@ -1,3 +1,6 @@
+<!-- SPDX-License-Identifier: MIT -->
+<!-- Copyright (c) 2024-2026 RAEN Digital Tools SL - PyNET Platform -->
+
 # Guide: Revit scripts
 
 Read this guide **before writing any Revit script**. For element queries/measurements, also read [RevitApiPatterns](../.claude/commands/RevitApiPatterns.md). For forms/dialogs read [winforms.md](winforms.md).

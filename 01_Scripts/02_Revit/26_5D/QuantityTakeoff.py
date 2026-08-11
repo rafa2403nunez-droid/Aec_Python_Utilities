@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: MIT
+# Copyright (c) 2024-2026 RAEN Digital Tools SL - PyNET Platform
 
 import openpyxl, webbrowser, math
 from openpyxl.styles import Font as XFont, PatternFill, Alignment, Border, Side

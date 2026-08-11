@@ -1,3 +1,6 @@
+<!-- SPDX-License-Identifier: MIT -->
+<!-- Copyright (c) 2024-2026 RAEN Digital Tools SL - PyNET Platform -->
+
 # Guide: Navisworks scripts
 
 Read this guide **before writing any Navisworks script**. It holds the host boilerplate, CastUtils casting, and the saved-script structure convention.

@@ -1,3 +1,6 @@
+# SPDX-License-Identifier: MIT
+# Copyright (c) 2024-2026 RAEN Digital Tools SL - PyNET Platform
+
 """
 PyNET shared clash helpers — version-tolerant access to Navisworks clash tests.
 

@@ -1,3 +1,6 @@
+# SPDX-License-Identifier: MIT
+# Copyright (c) 2024-2026 RAEN Digital Tools SL - PyNET Platform
+
 import dash
 from dash import html, Input, Output, clientside_callback
 from flask import send_file, render_template, send_from_directory

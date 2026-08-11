@@ -1,3 +1,6 @@
+<!-- SPDX-License-Identifier: MIT -->
+<!-- Copyright (c) 2024-2026 RAEN Digital Tools SL - PyNET Platform -->
+
 # Project Context — PyNET Platform (Navisworks · Revit · AutoCAD/Civil 3D)
 
 This file is the **always-loaded core**: rules that apply to every interaction. Host-specific
@@ -25,7 +28,7 @@ Scripts are sent to the plugin through the MCP bridge and executed locally insid
 > **Timeout rule:** always use a minimum timeout of **60 seconds** when calling `send_command`.
 
 > **MCP bridge:** `pip show pynet-mcp-bridge` (NOT `pynet-bridge`) using Python 3.10 pip at
-> `C:\Users\34655\AppData\Local\Programs\Python\Python310\Scripts\pip.exe`. Installed: **1.5.4**.
+> `%LOCALAPPDATA%\Programs\Python\Python310\Scripts\pip.exe`. Installed: **1.5.4**.
 > Note there are two copies on this machine (uv at `~/.local/bin` and pip); uv wins on PATH, so
 > keep both upgraded or a client may silently run the older one.
 

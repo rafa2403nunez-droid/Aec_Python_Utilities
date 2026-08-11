@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: MIT
+# Copyright (c) 2024-2026 RAEN Digital Tools SL - PyNET Platform
 
 import clr, sys, re, math, webbrowser
 from pathlib import Path
@@ -11,7 +13,8 @@ from openpyxl.styles import PatternFill, Font as XFont
 doc = __revit__.ActiveUIDocument.Document #type:ignore
 app = __revit__.Application #type:ignore
 
-EXCEL_PATH = r'C:\Users\34655\OneDrive\Escritorio\PyNET_Control de Calidad.xlsx'
+# Edit this path to point at your own quality-control workbook.
+EXCEL_PATH = r'C:\PyNET_Samples\PyNET_Control de Calidad.xlsx'
 OUTPUT_DIR = str(Path(EXCEL_PATH).parent)
 TODAY = datetime.now().strftime('%Y%m%d_%H%M%S')
 DATE_STR = datetime.now().strftime('%d/%m/%Y %H:%M')

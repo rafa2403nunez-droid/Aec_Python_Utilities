@@ -1,3 +1,6 @@
+<!-- SPDX-License-Identifier: MIT -->
+<!-- Copyright (c) 2024-2026 RAEN Digital Tools SL - PyNET Platform -->
+
 # Guide: exporting a `.pnt` for the PyNET VS Code viewer
 
 How to generate a `.pnt` package that the PyNET viewer (ThatOpen / web-ifc fragments, embedded in

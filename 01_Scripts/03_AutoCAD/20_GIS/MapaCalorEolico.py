@@ -1,3 +1,6 @@
+# SPDX-License-Identifier: MIT
+# Copyright (c) 2024-2026 RAEN Digital Tools SL - PyNET Platform
+
 # Button: wind-siting suitability heat map for the active zone.
 # Zone comes from 04_QGIS/zona_activa.json (outputs live in output/<slug>/).
 # Reads aptitud.json (analysis cells from the PyQGIS engine) and draws one
@@ -24,7 +27,11 @@ from Autodesk.Aec.PropertyData.DatabaseServices import (
 )
 from Autodesk.Aec.PropertyData import DataType
 
-QGIS_DIR = Path(r"C:\Users\34655\source\repos\GithubRNM\PyNetLibrary\01_Scripts\04_QGIS")
+# Repo location of the standalone PyQGIS engine (01_Scripts/04_QGIS). Set it once per machine in
+# %USERPROFILE%\.pynet\paths.json (not versioned):  {"qgis_dir": "C:\\Repos\\PyNetLibrary\\01_Scripts\\04_QGIS"}
+_PATHS = Path.home() / ".pynet" / "paths.json"
+QGIS_DIR = (Path(json.loads(_PATHS.read_text(encoding="utf-8"))["qgis_dir"]) if _PATHS.exists()
+            else Path(r"C:\Repos\PyNetLibrary\01_Scripts\04_QGIS"))
 CFG = json.loads((QGIS_DIR / "zona_activa.json").read_text(encoding="utf-8"))
 APT_PATH = QGIS_DIR / "output" / CFG["slug"] / "aptitud.json"
 LAYER_NAME = "GIS_MAPA_CALOR"

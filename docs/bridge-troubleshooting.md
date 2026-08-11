@@ -1,3 +1,6 @@
+<!-- SPDX-License-Identifier: MIT -->
+<!-- Copyright (c) 2024-2026 RAEN Digital Tools SL - PyNET Platform -->
+
 # Guide: the MCP bridge is not connected — diagnose and reconnect
 
 What to do when the `mcp__pynet-bridge__*` tools are **missing from the session**, or a call to one
@@ -79,7 +82,7 @@ own. **Reload the VS Code window** (or restart the MCP connection), then confirm
 
 ```powershell
 Get-Process pynet-bridge -ErrorAction SilentlyContinue | Stop-Process -Force -Confirm:$false
-Set-Location "C:\Users\34655\source\repos\GithubRNM\PyNetBridge"
+Set-Location "C:\Repos\PyNetBridge"
 uv tool install . --force
 ```
 

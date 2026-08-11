@@ -1,3 +1,6 @@
+# SPDX-License-Identifier: MIT
+# Copyright (c) 2024-2026 RAEN Digital Tools SL - PyNET Platform
+
 # Button: build the active zone's terrain in Civil 3D from the PyQGIS engine output.
 # Zone comes from 04_QGIS/zona_activa.json (outputs live in output/<slug>/).
 # - Native TIN surface "MDT_<SLUG>" from the XYZ grid (IGN 5 m DEM).
@@ -21,7 +24,11 @@ from Autodesk.AutoCAD.Geometry import Point2d, Point3d, Point3dCollection
 from Autodesk.Civil.ApplicationServices import CivilApplication
 from Autodesk.Civil.DatabaseServices import TinSurface
 
-QGIS_DIR = Path(r"C:\Users\34655\source\repos\GithubRNM\PyNetLibrary\01_Scripts\04_QGIS")
+# Repo location of the standalone PyQGIS engine (01_Scripts/04_QGIS). Set it once per machine in
+# %USERPROFILE%\.pynet\paths.json (not versioned):  {"qgis_dir": "C:\\Repos\\PyNetLibrary\\01_Scripts\\04_QGIS"}
+_PATHS = Path.home() / ".pynet" / "paths.json"
+QGIS_DIR = (Path(json.loads(_PATHS.read_text(encoding="utf-8"))["qgis_dir"]) if _PATHS.exists()
+            else Path(r"C:\Repos\PyNetLibrary\01_Scripts\04_QGIS"))
 CFG = json.loads((QGIS_DIR / "zona_activa.json").read_text(encoding="utf-8"))
 OUTPUT_DIR = QGIS_DIR / "output" / CFG["slug"]
 XYZ_PATH = OUTPUT_DIR / "mdt_puntos.xyz"
