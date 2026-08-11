@@ -18,5 +18,3 @@ node_modules/
 _docbuild/
 01_Scripts/02_Revit/27_DataCenter/
 01_Scripts/02_Revit/25_QAQC/ModelAudit.txt
-01_Scripts/03_AutoCAD/20_GIS/ImportarDesbroceAerogeneradores.py
-01_Scripts/03_AutoCAD/20_GIS/ImportarRiesgoIncendio.py

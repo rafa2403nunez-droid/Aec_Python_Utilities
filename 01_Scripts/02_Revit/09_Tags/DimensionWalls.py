@@ -1,3 +1,6 @@
+# SPDX-License-Identifier: MIT
+# Copyright (c) 2024-2026 RAEN Digital Tools SL - PyNET Platform
+
 # Auto-dimension straight walls in the active floor plan.
 # Classifies every straight wall by its centerline orientation (vertical = constant X,
 # horizontal = constant Y), then creates four dimension strings: an overall + a

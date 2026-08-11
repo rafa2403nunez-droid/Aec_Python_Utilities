@@ -77,5 +77,13 @@ Network egress is fine here (no sandbox), but keep requests to known official en
 - `03_VientoAptitud.py` — wind suitability surface.
 - `04_ExclusionesScore.py` — exclusion scoring.
 - `05_PosicionAerogeneradores.py` — turbine siting.
+- `06_RiesgoIncendio_LineaAT.py` — digital-twin flow A (line): vegetation/fuel surface
+  (Sentinel-2 NDVI+NDMI, or PNOA VARI fallback) × slope → fire-risk ranking along the AT
+  transmission-line corridor + presentation image. Civil 3D import:
+  `03_AutoCAD/20_GIS/ImportarRiesgoIncendio.py`. Needs `02_MdtTopografia.py`.
+- `07_DesbroceAerogeneradores.py` — digital-twin flow B (turbines): same fuel surface →
+  vegetation-clearance ranking per wind turbine pad + presentation image. Civil 3D import:
+  `03_AutoCAD/20_GIS/ImportarDesbroceAerogeneradores.py`. Needs `02_MdtTopografia.py` and
+  `05_PosicionAerogeneradores.py`. The two flows are independent (each fetches its own S2).
 
 Related workflow skill: `.claude/commands/WindSiting.md` (wind-farm siting study).
