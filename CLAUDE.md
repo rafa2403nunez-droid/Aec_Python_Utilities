@@ -73,11 +73,20 @@ Be efficient: check existing context before writing from scratch.
 2. **Example scripts (MANDATORY before writing from scratch)** — `01_Scripts/01_Navisworks/`,
    `01_Scripts/02_Revit/`, `01_Scripts/03_AutoCAD/`. Use `Glob` to list the relevant folder, then
    `Read` the closest match. The library is validated and production-ready.
-3. **Live API exploration** — write a short `send_command` script to inspect the actual model at
-   runtime. The live model is the most accurate reference.
-4. **API stubs** — `02_PyNet Stubs/`. Never read a stub file whole. Grep
-   `02_PyNet Stubs/_index/CLASSES.tsv` for the class name → it returns the namespace, file and
-   exact line range → then `Read` that file with `offset`/`limit`. See [docs/stubs.md](docs/stubs.md).
+3. **API stubs** — the authority on **what the API offers**: does this class exist, what is the
+   exact signature, what is the import line. Two cheap steps, so reach for them *before* probing
+   the live model or inferring a call:
+   - `Grep` `02_PyNet Stubs/_index/CLASSES.tsv` (942 KB, 8,788 classes) for the class name → it
+     returns the namespace, the file and the exact line range.
+   - `Read` that file with `offset`/`limit` → you get that class alone (median 16 lines).
+
+   Never read a stub file whole (a namespace can be 25k lines) and never grep the corpus just to
+   locate a class. Do grep the stub files to find *which* class declares a given method. Match on
+   the `namespace` column — 163 class names are repeated. See [docs/stubs.md](docs/stubs.md).
+4. **Live API exploration** — a short `send_command` script against the running host. This answers
+   what a **specific model contains** (populated categories, real parameter values, how many
+   elements match) — questions the stubs cannot answer. It costs a round trip and needs the host
+   open, so use the stubs to get the call right first, then run it.
 
 ---
 

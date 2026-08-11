@@ -7,8 +7,8 @@
 
 <p align="center">
   <a href="https://github.com/RAEN-DT/PyNetLibrary/releases"><img src="https://img.shields.io/github/v/release/RAEN-DT/PyNetLibrary?label=release&color=f78166" alt="Release"/></a>
-  <img src="https://img.shields.io/badge/reference%20scripts-125%2B-2b7489" alt="Scripts"/>
-  <img src="https://img.shields.io/badge/API%20stubs-189%20modules-6f42c1" alt="Stubs"/>
+  <img src="https://img.shields.io/badge/reference%20scripts-113-2b7489" alt="Scripts"/>
+  <img src="https://img.shields.io/badge/API%20stubs-8%2C788%20classes-6f42c1" alt="Stubs"/>
   <img src="https://img.shields.io/badge/python-3.10%2B-blue" alt="Python"/>
   <img src="https://img.shields.io/badge/platform-Windows-lightgrey" alt="Windows"/>
   <img src="https://img.shields.io/badge/hosts-Navisworks%20%C2%B7%20Revit%20%C2%B7%20Civil%203D-orange" alt="Hosts"/>
@@ -18,7 +18,11 @@
 
 **API context and reference scripts for Autodesk applications (Navisworks, Revit, Civil 3D)**, designed for the **[PyNet Platform](https://github.com/RAEN-DT/PyNet)**. This repo provides Python-style **stubs** of the Autodesk .NET APIs and example scripts, so that AI models (and developers) have the context they need to generate and understand automation code that runs through PyNet's embedded **Python.NET** engine.
 
-> **AI Users:** This README, the API stubs under `02_PyNet Stubs/`, and the example scripts under `01_Scripts/` are the primary context sources for generating scripts. Read the execution environment and boilerplate sections before writing any code.
+> **AI Users:** This README, the example scripts under `01_Scripts/`, and the API stubs under
+> `02_PyNet Stubs/` are the primary context sources for generating scripts. Read the execution
+> environment and boilerplate sections before writing any code. For an API signature, go to the
+> stubs through `02_PyNet Stubs/_index/CLASSES.tsv` — see [Stub Usage](#-stub-usage). It is faster
+> and more reliable than inferring a call and finding out at runtime.
 
 ---
 
@@ -288,23 +292,46 @@ FeatureManager.Run(doc)
 
 ## 🔍 Stub Usage
 
-The stub files under `02_PyNet Stubs/Autodesk/` (one folder per host: `Navisworks/`, `Revit/`, `AutoCAD/`, `Civil/`, `Aec/`) provide a Python-style representation of the Autodesk .NET APIs.
+The stub files under `02_PyNet Stubs/` are a Python-style representation of the Autodesk .NET APIs
+— **8,788 classes** across `Autodesk/` (one folder per host: `Navisworks/`, `Revit/`, `AutoCAD/`,
+`Civil/`, `Aec/`) plus the narrow slice of `System/` that PyNET actually imports. They are purely
+informational and never executed at runtime.
 
-### Purpose
-- Provide type hints and method signatures
-- Help AI models understand available API surfaces
-- Improve code generation accuracy
-- Assist developers in navigating the API
+### For AI models — check the stubs before guessing or probing
 
-### How to Use
-- Use stubs as a reference when writing scripts manually
-- Use them as context for AI-generated code
-- Explore them in an IDE for navigation and API understanding
-- They are not required at runtime and should not be executed directly
+An index makes the corpus cheap to query, so **the stubs are the authority on what the API offers**
+and should be consulted ahead of writing an exploratory script against the live model. Two steps:
 
-### Notes
-- Stubs mirror the structure of the Autodesk .NET assemblies
-- They are purely informational and not executed at runtime
+**1. Grep `02_PyNet Stubs/_index/CLASSES.tsv`** (942 KB) for the class name:
+
+```
+class      namespace             file                            start   end   base        members
+Wall       Autodesk.Revit.DB     Autodesk/Revit/DB/__init__.py   25358   25421 HostObject  58
+```
+
+**2. Read that file with `offset=start`, `limit=end-start`** — you get that class and nothing else.
+The median class is 16 lines.
+
+Never read a stub file whole: a single namespace can run to 25,000 lines. Never grep the corpus to
+find *where* a class lives — that is what the index is for. Grepping the stub files directly is
+still the right move for the opposite question, *which* class declares a given method, since
+ripgrep reports the file and line.
+
+**163 class names exist in more than one namespace** (`Application` is in six, `Entity` in five), so
+always match on the `namespace` column — it is also what tells you the correct import line.
+
+### When to probe the live model instead
+
+The stubs describe what the **API** offers. They cannot tell you what a **specific model** contains
+— which categories are populated, what a parameter is actually set to, how many elements match a
+filter. Those need a real query through the bridge. Use the stubs to get the call right, then run it.
+
+### Regenerating
+
+`01_Scripts/00_utils/GenerateStubs.py` rebuilds the stubs from the open host, then
+`01_Scripts/00_utils/IndexStubs.py` rebuilds the index — the second is required, because the index
+stores line numbers that are only valid for the stubs they were built from. Full detail in
+[docs/stubs.md](docs/stubs.md).
 
 ---
 
