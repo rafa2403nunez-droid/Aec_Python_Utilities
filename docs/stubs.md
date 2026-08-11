@@ -13,14 +13,55 @@ Stubs live in `02_PyNet Stubs/` (committed). Pylance resolves them via `python.a
 
 ```
 02_PyNet Stubs/
+  _index/
+    CLASSES.tsv   <- the lookup index; read this before touching a stub file
+    STATS.md      <- corpus summary, classes per namespace
   Autodesk/
     Navisworks/   <- generated from the open Navisworks version
     Revit/        <- generated from the open Revit version
     Aec/ AutoCAD/ Civil/   <- AutoCAD / Civil 3D
-  System/         <- legacy .NET stubs (kept for intellisense)
+  System/         <- only what PyNET imports: Windows.Forms, Drawing, Collections
 ```
 
-> These files are very large (50k+ lines). **Never read them in full.** Search for a specific class/method/property only when other context sources don't answer.
+`System/` is deliberately narrow. WPF (`System.Windows.Controls`, `.Media`) and the rest of the
+BCL were removed — the library imports WinForms, Drawing and Collections.Generic and nothing else,
+and carrying 17 MB of stubs nobody consults made every search slower. The stub files contain no
+imports, so a missing subtree cannot break another one; Pylance simply offers no completion for it.
+
+---
+
+## Looking up a class — do this, not a blind grep
+
+A single namespace file can be 25k lines, so never `Read` one whole and never grep the corpus to
+find *where* something is. `_index/CLASSES.tsv` (942 KB, 8,788 classes) makes them addressable:
+
+```
+class      namespace             file                            start   end   base        members
+Wall       Autodesk.Revit.DB     Autodesk/Revit/DB/__init__.py   25358   25421 HostObject  58
+```
+
+**Two steps, both cheap:**
+
+1. `Grep` the index for the class name → gives the namespace (so you know the import line), the
+   file, and the exact line range.
+2. `Read` that file with `offset=start`, `limit=end-start` → you get the class and nothing else.
+   The median class is 16 lines; the 90th percentile is 142.
+
+**163 class names exist in more than one namespace** (`Application` is in six, `Entity` in five).
+Always match on the `namespace` column — never assume the first hit is the right one.
+
+To find *which* class has a given method or property, grep the stub files directly: ripgrep reports
+the file and line, and that is cheaper than a second index would be. The index carries only what
+grep cannot produce — the line range and the disambiguating namespace.
+
+### Rebuilding the index
+
+```powershell
+python 01_Scripts\00_utils\IndexStubs.py
+```
+
+Runs with local CPython — no host, no bridge. **Re-run it after every `GenerateStubs.py`**, since
+the line numbers are only valid for the stubs they were built from.
 
 ---
 

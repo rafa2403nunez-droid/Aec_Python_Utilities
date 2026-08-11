@@ -75,7 +75,9 @@ Be efficient: check existing context before writing from scratch.
    `Read` the closest match. The library is validated and production-ready.
 3. **Live API exploration** — write a short `send_command` script to inspect the actual model at
    runtime. The live model is the most accurate reference.
-4. **API stubs** — `02_PyNet Stubs/` (50k+ lines; never read in full — search a specific name only).
+4. **API stubs** — `02_PyNet Stubs/`. Never read a stub file whole. Grep
+   `02_PyNet Stubs/_index/CLASSES.tsv` for the class name → it returns the namespace, file and
+   exact line range → then `Read` that file with `offset`/`limit`. See [docs/stubs.md](docs/stubs.md).
 
 ---
 
