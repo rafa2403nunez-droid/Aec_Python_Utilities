@@ -7,9 +7,11 @@ __pycache__/
 01_Scripts/01_Navisworks/07_IFCExport/
 01_Scripts/02_Revit/00_Workflow/
 01_Scripts/04_QGIS/
-03_Viewer/server/dist/
-03_Viewer/server/build/
 node_modules/
+
+# The viewer moved to the PyNetVSCode repo (viewer/). Ignored so a leftover local
+# checkout here does not resurface as untracked files.
+03_Viewer/
 *.exe
 
 # Not published yet

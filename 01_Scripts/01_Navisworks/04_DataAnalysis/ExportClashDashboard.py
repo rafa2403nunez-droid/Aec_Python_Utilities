@@ -42,8 +42,12 @@ from Raen.Core.Pynet.Resources import CastUtils #type:ignore
 from Autodesk.Navisworks.Api import Application
 doc = Application.ActiveDocument
 
-user_home = Path.home()
-repo_base = user_home / "source" / "repos" / "GithubRNM" / "PyNetLibrary" / "03_Viewer"
+# Viewer runtime (dist/ + dashboard/). The viewer lives in the PyNetVSCode repo under viewer/.
+# Set the location once per machine in %USERPROFILE%\.pynet\paths.json (not versioned):
+#   {"viewer_dir": "C:\\Repos\\PyNetVSCode\\viewer"}
+_PATHS = Path.home() / ".pynet" / "paths.json"
+_CFG = json.loads(_PATHS.read_text(encoding="utf-8")) if _PATHS.exists() else {}
+repo_base = Path(_CFG.get("viewer_dir", r"C:\Repos\PyNetVSCode\viewer"))
 VIEWER_DIR = repo_base / "dist"
 DASHBOARD_DIR = repo_base / "dashboard"
 PORT = 8095

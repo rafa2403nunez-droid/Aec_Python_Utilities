@@ -487,21 +487,16 @@ This auto-detects and configures **Claude Desktop**, **Claude Code**, **Cline**,
 
 ---
 
-## 🖥️ BIM Viewer & Coordination Dashboard (03_Viewer)
+## 🖥️ BIM Viewer & Coordination Dashboard
 
-Embeddable web component built with **ThatOpen Components** for visualizing federated IFC models alongside coordination data (clash detection) exported from Navisworks.
+The viewer is an embeddable web component built with **ThatOpen Components** for visualizing
+federated IFC models alongside coordination data (clash detection) exported from Navisworks.
 
-### Structure
-
-```
-03_Viewer/
-  src/           → Viewer TypeScript (ThatOpen + Three.js)
-  dashboard/     → Dashboard HTML + Plotly (clash table, charts)
-  server/        → Python servers: pnt_server.py (current) + legacy_server.py
-  public/worker/ → Web Worker for fragment parsing
-  dist/          → Viewer production build (generated with vite build)
-  dist_exe/      → Packaged standalone .exe of the dashboard (PyInstaller)
-```
+> **The viewer source now lives in [PyNetVSCode](https://github.com/RAEN-DT/PyNetVSCode)**, under
+> `viewer/`, together with the VS Code extension that ships it. Build instructions, the development
+> server and the viewer's public JavaScript API are documented there. This repo keeps the parts that
+> belong to the Autodesk side: producing the `.pnt` package and launching the dashboard from
+> Navisworks.
 
 ### The `.pnt` package
 
@@ -523,86 +518,15 @@ The script is located at `01_Scripts/01_Navisworks/04_DataAnalysis/ExportClashDa
 
 > **Important limitation:** The web server (Dash/Flask) only works when launched from a **WinForms** context (`Form.ShowDialog()`). Launching Dash from a direct MCP script (`send_command`) causes a deadlock due to the Python.NET GIL. This is why the script uses a Form as its entry point — the server thread is created from the Form button event, not from the MCP context.
 
-### Open a `.pnt` package — `pnt_server.py` (current)
+### Opening a `.pnt` package
 
-`pnt_server.py` is the product server: a Flask/Dash app wrapped in a **PyWebView desktop window**.
-It opens a `.pnt`, extracts it to `~/.pynet_viewer/<name>/`, and shows the viewer + dashboard.
+The easiest route is the **PyNET extension for VS Code**, which bundles the viewer and opens a
+`.pnt` in an editor tab. To run the server directly, or to build the viewer from source, see the
+[PyNetVSCode](https://github.com/RAEN-DT/PyNetVSCode) repo — `viewer/README.md` covers
+`pnt_server.py`, the standalone `.exe`, the hot-reload dev server and the viewer's public API.
 
-```powershell
-cd C:\Repos\PyNetLibrary\03_Viewer\server
-
-python pnt_server.py                 # opens a file picker to choose a .pnt
-python pnt_server.py project.pnt     # opens a specific package directly
-python pnt_server.py --port 8096     # custom port (default 8095)
-```
-
-#### Standalone `.exe` (no Python required)
-
-`pnt_server.py` can be packaged into a single distributable executable with PyInstaller — this is
-what `dist_exe/` (and `server/BIM-Dashboard.spec`) hold. End users just double-click the `.exe`,
-pick their `.pnt`, and explore the model + clashes without installing anything.
-
-```powershell
-cd C:\Repos\PyNetLibrary\03_Viewer\server
-pyinstaller pnt_server.py --onefile --noconsole --add-data "../dashboard;dashboard" --add-data "../dist;dist"
-```
-
-### Legacy — serve a folder of loose IFCs (`legacy_server.py`)
-
-> Development / troubleshooting only, and requires user approval. The standard flow is the `.pnt`
-> package above (or the Navisworks button). `legacy_server.py` is the older Python-stdlib server that
-> serves a directory of IFC files directly, with no `.pnt` packaging.
-
-<details>
-<summary>Show legacy instructions</summary>
-
-**Step 1 — Export data from Navisworks (via MCP or button)**
-
-**Step 2 — Start the HTTP server**
-
-```powershell
-cd C:\Repos\PyNetLibrary\03_Viewer
-python server\legacy_server.py --ifc-dir "C:\path\to\ifcs" --port 8095
-```
-
-**Step 3 — Open the dashboard**
-
-```
-http://localhost:8095/
-```
-
-**Standalone viewer (viewer only, no dashboard)**
-
-```
-http://localhost:8095/viewer/?models=model1.ifc,model2.ifc
-```
-</details>
-
-### Rebuild the viewer (after changes in src/)
-
-```powershell
-cd C:\Repos\PyNetLibrary\03_Viewer
-npm install
-npm run build
-```
-
-### Development with hot-reload
-
-```powershell
-cd C:\Repos\PyNetLibrary\03_Viewer
-npm run dev
-# Vite at http://localhost:5173 — requires legacy_server.py on port 8080 for IFC files
-python server\legacy_server.py --ifc-dir "C:\path\to\ifcs" --port 8080
-```
-
-### Viewer public API (for integration)
-
-| Function | Description |
-| :--- | :--- |
-| `window.loadModel(url, name)` | Loads an IFC model by URL |
-| `window.highlightElements(modelId, expressIds)` | Highlights elements (clash navigation) |
-| `window.fitToAllModels()` | Fits camera to all loaded models |
-| `postMessage({ type: "viewer-command", ... })` | iframe ↔ dashboard communication |
+For how the `.pnt` is produced from a model, see [docs/pnt-export.md](docs/pnt-export.md). For
+driving an already-loaded package from the AI side, see [docs/viewer-mcp.md](docs/viewer-mcp.md).
 
 ---
 

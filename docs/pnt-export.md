@@ -32,7 +32,8 @@ project doesn't carry that type parameter (e.g. generic/sample models). `Classif
 Category if it finds zero classified types across the whole federation — this avoids a misleading
 "0% coverage" being reported for a parameter the project never used in the first place.
 
-`clashes.json` is the entry point (`03_Viewer/server/pnt_server.py` extracts the zip and reads it).
+`clashes.json` is the entry point (the viewer's `server/pnt_server.py`, in the PyNetVSCode repo,
+extracts the zip and reads it).
 Minimum shape to render geometry — **clashes are optional, an empty list is fine**:
 
 ```json
@@ -116,7 +117,8 @@ Reads the QGIS outputs in `04_QGIS/output/<slug>/` (`prioridad_segmentos.json`,
 
 ## Known limitation — viewer far-plane (TODO before real-scale)
 
-The viewer camera (`03_Viewer/src/main.ts`, ~line 61) sets `threePersp.near = 0.01` and leaves the
+The viewer camera (`viewer/src/main.ts` in the PyNetVSCode repo, ~line 61) sets
+`threePersp.near = 0.01` and leaves the
 default `far` (**2000**). A geographic model (~7 km) is clipped beyond 2 km → geometry "disappears
 when moving". Current stop-gap was scaling the model ×0.1 (a navigable "maquette" — but loses real
 scale/measurement).

@@ -4,14 +4,14 @@
 # Guide: the PyNET VS Code viewer's MCP tools (`viewer_*`)
 
 Reference for the `mcp__pynet-bridge__viewer_*` tools that drive the embedded viewer (ThatOpen /
-web-ifc, `03_Viewer/`) from the AI side. See [docs/pnt-export.md](pnt-export.md) for how the `.pnt`
+web-ifc) from the AI side. See [docs/pnt-export.md](pnt-export.md) for how the `.pnt`
 itself is built; this file is about **operating an already-loaded package** — selecting, isolating,
 highlighting clashes, reading properties.
 
 Source of truth for the tool signatures: `pynet_mcp/server.py` in the **`PyNetBridge`** repo
 (installed via `uv tool` — see the "dual install" gotcha below; do not edit the copy under
 `AppData\Roaming\uv\tools\...\site-packages`, it gets overwritten on every `uv tool install`).
-Source of truth for viewer behaviour: `03_Viewer/src/main.ts`.
+Source of truth for viewer behaviour: `viewer/src/main.ts` in the **PyNetVSCode** repo.
 
 > If the `viewer_*` tools are **missing from the session** or a call returns
 > `MCP error -32000: Connection closed`, the viewer is probably fine — the bridge failed to launch.
