@@ -198,4 +198,4 @@ Use **Developer Mode** (full scripts, JSON, stack traces) only when activated wi
 See the `DevMode` skill for the full spec.
 
 > **Language:** match the user's conversation language (Spanish ↔ Spanish, English ↔ English).
-> All persistent repo AI artifacts (this file, `docs/`, skills) stay in **English**. See `CODEX.md`.
+> All persistent repo AI artifacts (this file, `docs/`, skills) stay in **English**. See `AGENTS.md`.
